@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Image Classification</title>
+    <!-- <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}"> -->
+  </head>
+  <body>
+    <h1>Image Classification with a ResNet-like model</h1>
+    <h2>Select image</h2>
+    <section class="content">
+    <form method="POST" enctype="multipart/form-data">
+      <input type="file" name="image" required>
+      <input type="submit" value="Classify">
+    </form>
+
+    {% if user_img %}
+    <div><p>Uploaded image:</p>
+    {{ user_img|safe }}
+  </div>
+    {% endif %}
+
+    {% if output %}
+    <div><h2>Probabilities:</h2>
+    {% for item in output.items() %}
+    <div>{{ item.0 }} : {{ item.1 }}</div>
+    {% endfor %}
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+
+<div id="plot_div" class="chart" style="max-width: 600px;">
+<script type="text/javascript">
+
+var trace1 = {
+    x: {{ prob_labels|safe }},
+    y: {{ cat_labels|safe }},
+    type: 'bar',
+    orientation: 'h'
+};
+
+var layout = {
+    title: "Classificaton results",
+    titlefont: {
+            family: 'Poppins',
+            size: 18,
+            color: '#7f7f7f'
+        },
+    showlegend: false,
+    yaxis: {
+        title: 'Category'
+    },
+    xaxis: {
+        title: 'Probability'
+    },
+    margin: {
+        l: 70,
+        r: 40,
+        b: 50,
+        t: 50,
+        pad: 4
+    }
+};
+
+var data = [trace1];
+
+Plotly.newPlot("plot_div", data, layout);
+
+</script>
+</div>
+</div>
+    {% endif %}
+
+  </section>
+  </body>
+</html>
