@@ -1,4 +1,4 @@
-# WebAPI for image recognition with a custom Residual CNN (PyTorch)
+# WebAPI for image recognition with a custom Residual CNN using PyTorch and Flask
 
 ## Network
 
@@ -9,6 +9,10 @@ The model was trained on the CIFAR-100 ([link](https://www.cs.toronto.edu/~kriz/
 
 Upload an image to obtain a classification with a detailed visualization of the results:
 ![program interface with an example of an inference output](blob/main/interface.jpg?raw=true)
+
+To run the application, install dependencies with `pip install -r requirements.txt` and run Flask server:
+
+`flask --app ./server.py run`
 
 ## Training and evaluation
 
