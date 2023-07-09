@@ -5,69 +5,86 @@
     <!-- <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}"> -->
   </head>
   <body>
-    <h1>Image Classification with a ResNet-like model</h1>
-    <h2>Select image</h2>
+    <h1>Image Classification with a ResNet-like CNN model</h1>
     <section class="content">
-    <form method="POST" enctype="multipart/form-data">
-      <input type="file" name="image" required>
-      <input type="submit" value="Classify">
-    </form>
+      <section id="input_form">
+        <h2>Select image:</h2>
+        <form method="POST" enctype="multipart/form-data">
+          <input type="file" name="image" required>
+          <input type="submit" value="Classify">
+        </form>
+        
+        {% if user_img %}
+        <div>
+          <p>Uploaded image:</p>
+          {{ user_img|safe }}
+        </div>
+        {% endif %}
+      </section>
 
-    {% if user_img %}
-    <div><p>Uploaded image:</p>
-    {{ user_img|safe }}
-  </div>
-    {% endif %}
+      {% if output %}
+      <section id="output">
+        <h2>Inference results:</h2>
+        <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
 
-    {% if output %}
-    <div><h2>Probabilities:</h2>
-    {% for item in output.items() %}
-    <div>{{ item.0 }} : {{ item.1 }}</div>
-    {% endfor %}
-    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
-
-<div id="plot_div" class="chart" style="max-width: 600px;">
-<script type="text/javascript">
-
-var trace1 = {
-    x: {{ prob_labels|safe }},
-    y: {{ cat_labels|safe }},
-    type: 'bar',
-    orientation: 'h'
-};
-
-var layout = {
-    title: "Classificaton results",
-    titlefont: {
-            family: 'Poppins',
-            size: 18,
-            color: '#7f7f7f'
-        },
-    showlegend: false,
-    yaxis: {
-        title: 'Category'
-    },
-    xaxis: {
-        title: 'Probability'
-    },
-    margin: {
-        l: 70,
-        r: 40,
-        b: 50,
-        t: 50,
-        pad: 4
-    }
-};
-
-var data = [trace1];
-
-Plotly.newPlot("plot_div", data, layout);
-
-</script>
-</div>
-</div>
-    {% endif %}
-
-  </section>
+        <div id="plot_div" class="chart" style="max-width: 600px;">
+          <script type="text/javascript">
+            var trace1 = {
+                x: {{ prob_labels|safe }},
+                y: {{ cat_labels|safe }},
+                type: 'bar',
+                orientation: 'h',
+                text: {{ prob_labels|safe }}
+                  .map(function(elem){return Number(elem).toFixed(2);}),
+                textposition: 'auto',
+                hoverinfo: 'none',
+                marker: {
+                  color: 'rgb(158,202,225)',
+                  opacity: 0.6,
+                  line: {
+                    color: 'rgb(8,48,107)',
+                    width: 1.5
+                  }
+                }
+            };
+            
+            var layout = {
+                titlefont: {
+                        family: 'Poppins',
+                        size: 18,
+                        color: '#7f7f7f'
+                    },
+                showlegend: false,
+                yaxis: {
+                    title: 'Category'
+                },
+                xaxis: {
+                    title: 'Probability'
+                },
+                margin: {
+                    l: 70,
+                    r: 40,
+                    b: 50,
+                    t: 50,
+                    pad: 4
+                }
+            };
+            
+            var data = [trace1];
+            Plotly.newPlot("plot_div", data, layout);
+            
+          </script>
+        </div>
+        <div>
+          <p>Probabilities:</p>
+          <ul>
+          {% for item in output.items()|sort(attribute='1', reverse=True) %}
+            <li>{{ item.0 }} : {{ '%0.2f' | format(item.1|float) }}</li>
+          {% endfor %}
+          </ul>
+        </div>
+      </section>
+      {% endif %}
+    </section>
   </body>
 </html>

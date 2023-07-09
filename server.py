@@ -1,72 +1,67 @@
 import os
-from typing import Any, Dict, Optional
+from typing import Tuple
 import io
 import base64
 import json
 
-import joblib
 import torch
 import numpy as np
 from flask import Flask, request, render_template, redirect
 from PIL import Image
 
-from models.resnet import ResNet, preprocess, get_probs
+from models.resnet import ResNet, preprocess
+from models.utils import get_probs
+from datasets.cifar100 import CLASSES
 
+
+# app initialization
 app = Flask(__name__)
-trained_model_path = os.path.join("models", "trained", "resnet4000.pth")
 
+# model initialization
 net = ResNet()
+trained_model_path = os.path.join("models", "trained", "resnet.pth")
 state_dict = torch.load(trained_model_path, torch.device('cpu'))
 net.load_state_dict(state_dict)
 net.eval()
 
+def pil_image_to_html(pil_img: Image, height: int = 200) -> str:
+    """Convert PIL image to a string embeddable in a HTML document."""
 
-# @app.route('/')
-# def upload_form():
-#     return render_template('home.html', output={})
+    with io.BytesIO() as buf:
+            pil_img.save(buf, 'jpeg')
+            image_bytes = buf.getvalue()
+    img_enc = base64.b64encode(image_bytes).decode('ascii')
+    return f'<img src="data:image/jpg;base64,{img_enc}" class="img-fluid" height="{height}px"/>'
 
 @app.route("/", methods=["POST", "GET"])
-def classify_data() -> Any:
+def classify_data() -> Tuple[str, int]:
     if request.method == "POST":
-        # Check if a file was submitted
+
+        # Check if an image was selected
         if 'image' not in request.files:
             print('No file found')
             return redirect(request.url)
         file = request.files['image']
-        # Check if the file has a name
         if file.filename == '':
             print('No file selected')
             return redirect(request.url)
-        image_string = file.read()
-        pil_img = Image.open(io.BytesIO(image_string))
-        with io.BytesIO() as buf:
-                pil_img.save(buf, 'jpeg')
-                image_bytes = buf.getvalue()
-        img_enc = base64.b64encode(image_bytes).decode('ascii')
-        # img_io = io.BytesIO()
-        # pil_img.save(img_io, 'jpeg', quality=100)
-        # img_io.seek(0)
-        # img_enc = base64.b64encode(img_io.getvalue()).decode('ascii')
-        img_html = f'<img src="data:image/jpg;base64,{img_enc}" class="img-fluid" height="200px"/>'
 
-        img = np.asarray(pil_img).swapaxes(0, 2)
-        img = preprocess(img)
-
-        output = get_probs(net, img)
+        # Load binary image and run inference
+        pil_img = Image.open(io.BytesIO(file.read()))
+        img_html = pil_image_to_html(pil_img)
+        img = preprocess(np.array(pil_img))
+        output = get_probs(net, img, add_softmax=True)
+        output = {CLASSES[i[0]]:i[1] for i in output.items()}
 
         return render_template(
             "home.html", output=output, 
             user_img=img_html,
-            prob_labels=json.dumps([str(i) for i in output.values()]),
-            cat_labels=json.dumps(list(output.keys()))
+            prob_labels=json.dumps([str(i) for i in sorted(output.values())]),
+            cat_labels=json.dumps(sorted(list(output.keys()), key=lambda item: output[item]))
         ), 200
     
     else:
         return render_template("home.html"), 200
 
 if __name__ == '__main__':
-    
-    # net = ResNet()
-    # net.load_state_dict(torch.load(trained_model_path)).cpu().eval()
-
     app.run(debug=True)

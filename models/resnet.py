@@ -1,28 +1,18 @@
-from typing import Optional, Dict
+from typing import Optional
 
 import torch.nn as nn
-import torch.nn.functional as F
 import numpy as np
-from numpy.typing import ArrayLike
 import torch
 import torchvision
 
-CLASSES = ('apples', 'aquarium fish', 'baby', 'bear', 'beaver', 'bed', 'bee', 'beetle', 'bicycle', 'bottles',
-           'bowls', 'boy', 'bridge', 'bus', 'butterfly', 'camel', 'cans', 'castle', 'caterpillar', 'cattle', 'chair',
-           'chimpanzee', 'clock', 'cloud', 'cockroach', 'computer keyboard', 'couch', 'crab', 'crocodile',
-           'cups', 'dinosaur', 'dolphin', 'elephant', 'flatfish', 'forest', 'fox', 'girl', 'hamster', 'house',
-           'kangaroo', 'lamp', 'lawn-mower', 'leopard', 'lion', 'lizard', 'lobster', 'man', 'maple', 'motorcycle',
-           'mountain', 'mouse', 'mushrooms', 'oak', 'oranges', 'orchids', 'otter', 'palm', 'pears', 'pickup truck',
-           'pine', 'plain', 'plates', 'poppies', 'porcupine', 'possum', 'rabbit', 'raccoon', 'ray', 'road', 'rocket',
-           'roses', 'sea', 'seal', 'shark', 'shrew', 'skunk', 'skyscraper', 'snail', 'snake', 'spider', 'squirrel',
-           'streetcar', 'sunflowers', 'sweet peppers', 'table', 'tank', 'telephone', 'television', 'tiger', 'tractor',
-           'train', 'trout', 'tulips', 'turtle', 'wardrobe', 'whale', 'willow', 'wolf', 'woman', 'worm')
-
 
 class BasicBlock(nn.Module):
-    """Basic Block of ResNet."""
+    """Basic Residual Block."""
 
-    def __init__(self, in_channels, out_channels, stride=1, downsample=None):
+    def __init__(
+        self, in_channels: int, out_channels: int, 
+        stride: Optional[int] = 1, downsample: Optional[nn.Module] = None
+    ) -> None:
         super().__init__()
 
         self.conv1 = nn.Conv2d(in_channels, out_channels, 3, stride, 1, bias=False)
@@ -34,8 +24,8 @@ class BasicBlock(nn.Module):
         self.downsample = downsample
         self.stride = stride
 
-    def forward(self, x):
-        """Forward Pass of Basic Block."""
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """Forward Pass."""
         residual = x
 
         out = self.conv1(x)
@@ -54,7 +44,7 @@ class BasicBlock(nn.Module):
 class ResNet(nn.Module):
     """Residual Neural Network."""
 
-    def __init__(self, num_classes: int = 100, in_channels: int = 32):
+    def __init__(self, num_classes: Optional[int] = 100, in_channels: Optional[int] = 32) -> None:
         super().__init__()
 
         # Pre
@@ -99,8 +89,8 @@ class ResNet(nn.Module):
             elif isinstance(m, nn.Linear):
                 m.bias.data.zero_()
 
-    def forward(self, x):
-        """Forward pass of ResNet."""
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """Forward pass."""
         x = self.conv1(x)
         x = self.bn(x)
         x = self.relu(x)
@@ -118,23 +108,15 @@ class ResNet(nn.Module):
         return x
 
 
-def preprocess(img: Optional[ArrayLike] = None) -> Optional[torch.Tensor]:
-    if img is None:
-        return None
-    if len(img.shape) == 3:
-        img = img[None, :, :, :]
-    img = torch.from_numpy(img.copy())
-    img = img.float()
-    # img = img.unsqueeze(0)
+def preprocess(img: np.ndarray) -> torch.Tensor:
+    """Preprocess image as a 3D or 4D (batch) array to run inference with a ResNet model."""
+
+    img = img.astype(np.float32) / 255.0
+
     p = torchvision.transforms.Compose([
+        torchvision.transforms.ToTensor(),
         torchvision.transforms.Resize((32, 32)),
         torchvision.transforms.Normalize(mean=[0.507, 0.487, 0.441], std=[0.267, 0.256, 0.276])
     ])
-    return p(img)
 
-def get_probs(net: nn.Module, img: Optional[ArrayLike]) -> Dict:
-    if img is None:
-        return {}
-    val, ind = torch.topk(F.softmax(net(img).data, dim=1), k=5)
-    val, ind = val.numpy(), ind.numpy()
-    return {CLASSES[ind[0][i]]:val[0][i].item() for i in range(val.size)}
+    return p(img)
